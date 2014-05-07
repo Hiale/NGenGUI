@@ -1,0 +1,271 @@
+﻿<Window x:Class="Hiale.NgenGui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Hiale.NgenGui"
+        xmlns:system="clr-namespace:System;assembly=mscorlib"
+        Title="NGen GUI"
+        Width="525"
+        Height="350"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
+        Icon="component_preferences.ico">
+    <Window.Resources>
+        <local:NgenFileStatusConverter x:Key="StatusConv" />
+        <local:BooleanToVisibilityConverter x:Key="boolConv" />
+        <Style x:Key="ListViewButtonImage" TargetType="Image">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Margin" Value="2" />
+        </Style>
+        <Style x:Key="MenuIcon" TargetType="Image">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5" />
+        </Style>
+    </Window.Resources>
+    <Window.CommandBindings>
+        <CommandBinding CanExecute="AddFilesCommandCanExecuted"
+                        Command="local:MainWindow.AddFilesCommand"
+                        Executed="AddFilesCommandExecuted" />
+        <CommandBinding CanExecute="AddDirectoryCommandCanExecuted"
+                        Command="local:MainWindow.AddDirectoryCommand"
+                        Executed="AddDirectoryCommandExecuted" />
+        <CommandBinding CanExecute="RemoveFilesCommandCanExecuted"
+                        Command="local:MainWindow.RemoveFilesCommand"
+                        Executed="RemoveFilesCommandExecuted" />
+        <CommandBinding CanExecute="ClearFileListCommandCanExecuted"
+                        Command="local:MainWindow.ClearFileListCommand"
+                        Executed="ClearFileListExecuted" />
+        <CommandBinding CanExecute="InstallCommandCanExecuted"
+                        Command="local:MainWindow.InstallCommand"
+                        Executed="InstallCommandExecuted" />
+        <CommandBinding CanExecute="DeinstallCommandCanExecuted"
+                        Command="local:MainWindow.DeinstallCommand"
+                        Executed="DeinstallCommandExecuted" />
+        <CommandBinding CanExecute="CancelCommandCanExecuted"
+                        Command="local:MainWindow.CancelCommand"
+                        Executed="CancelCommandExecuted" />
+    </Window.CommandBindings>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+            <RowDefinition Height="75" />
+        </Grid.RowDefinitions>
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Command="local:MainWindow.AddFilesCommand" Header="_Add Files...">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/AddFile.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="local:MainWindow.AddDirectoryCommand" Header="A_dd Folder...">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/Add.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Command="local:MainWindow.RemoveFilesCommand" Header="_Remove Selected Files">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/Remove.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="local:MainWindow.ClearFileListCommand" Header="_Clear List">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/Clear.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Click="MenuFileExitClick" Header="E_xit">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/Exit.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Actions">
+                <MenuItem Command="local:MainWindow.InstallCommand" Header="C_ompile to Native">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/component_delete.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="local:MainWindow.DeinstallCommand" Header="_Remove Native Build">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/component_add.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Click="MenuHelpAboutClick" Header="A_bout...">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/Information.png" Style="{StaticResource MenuIcon}" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+        <GroupBox Grid.Row="1" Header="Files">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ListView Name="lstItems"
+                          Grid.Row="0"
+                          ItemsSource="{Binding FileList}"
+                          KeyDown="LstItemsKeyDown">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="320" Header="File">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Width="24"
+                                                   Height="24"
+                                                   Margin="5,0,5,0"
+                                                   Source="{Binding FileIcon}" />
+                                            <TextBlock VerticalAlignment="Center" Text="{Binding AssemblyFile}" />
+                                            <StackPanel.ToolTip>
+                                                <TextBlock Text="{Binding AssemblyDetails.AssemblyFile}" />
+                                            </StackPanel.ToolTip>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="160" Header="Status">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Width="24"
+                                                   Height="24"
+                                                   Margin="5,0,5,0">
+                                                <Image.Style>
+                                                    <Style TargetType="Image">
+                                                        <Setter Property="Source" Value="{x:Null}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Unknown">
+                                                                <Setter Property="Source" Value="/Images/Unknown.png" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                                                <Setter Property="Source" Value="/Images/Check.png" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Deinstalled">
+                                                                <Setter Property="Source" Value="/Images/Box.png" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                                <Setter Property="Source" Value="/Images/Pending.png" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="InProgress">
+                                                                <Setter Property="Source" Value="/Images/Current.png" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+                                            <TextBlock VerticalAlignment="Center" Text="{Binding Status, Converter={StaticResource StatusConv}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                    <!--
+                        <ListView.Effect>
+                        <BlurEffect Radius="0" />
+                        </ListView.Effect>
+                    -->
+                </ListView>
+                <StackPanel Grid.Row="1" Orientation="Horizontal">
+                    <Button Command="local:MainWindow.AddFilesCommand" ToolTip="Add Files...">
+                        <Button.Content>
+                            <Image Source="/Images/AddFile.png" Style="{StaticResource ListViewButtonImage}" />
+                        </Button.Content>
+                    </Button>
+                    <Button Command="local:MainWindow.AddDirectoryCommand" ToolTip="Add Folder...">
+                        <Button.Content>
+                            <Image Source="/Images/Add.png" Style="{StaticResource ListViewButtonImage}" />
+                        </Button.Content>
+                    </Button>
+                    <Button Command="local:MainWindow.RemoveFilesCommand" ToolTip="Remove Selected Files">
+                        <Button.Content>
+                            <Image Source="/Images/Remove.png" Style="{StaticResource ListViewButtonImage}" />
+                        </Button.Content>
+                    </Button>
+                    <Button Command="local:MainWindow.ClearFileListCommand" ToolTip="Clear List">
+                        <Button.Content>
+                            <Image Source="/Images/Clear.png" Style="{StaticResource ListViewButtonImage}" />
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+        <GroupBox Grid.Row="2" Header="Actions">
+            <StackPanel Orientation="Horizontal">
+                <Button Name="btnInstall"
+                        Width="120"
+                        Command="local:MainWindow.InstallCommand">
+                    <Button.Visibility>
+                        <Binding Converter="{StaticResource boolConv}" Path="CancelPossible">
+                            <Binding.ConverterParameter>
+                                <system:Boolean>True</system:Boolean>
+                            </Binding.ConverterParameter>
+                        </Binding>
+                    </Button.Visibility>
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Width="32"
+                                   Height="32"
+                                   Margin="2"
+                                   Source="/Images/component_add.png" />
+                            <TextBlock TextAlignment="Center">
+                                Compile to
+                                <LineBreak />
+                                Native
+                            </TextBlock>
+                        </StackPanel>
+                    </Button.Content>
+                </Button>
+                <Button Name="btnDeinstall"
+                        Width="120"
+                        Command="local:MainWindow.DeinstallCommand">
+                    <Button.Visibility>
+                        <Binding Converter="{StaticResource boolConv}" Path="CancelPossible">
+                            <Binding.ConverterParameter>
+                                <system:Boolean>True</system:Boolean>
+                            </Binding.ConverterParameter>
+                        </Binding>
+                    </Button.Visibility>
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Width="32"
+                                   Height="32"
+                                   Margin="2"
+                                   Source="/Images/component_delete.png" />
+                            <TextBlock TextAlignment="Center">
+                                Remove
+                                <LineBreak />
+                                Native Build
+                            </TextBlock>
+                        </StackPanel>
+                    </Button.Content>
+                </Button>
+                <Button Name="btnCancel"
+                        Width="120"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Command="local:MainWindow.CancelCommand"
+                        Visibility="{Binding CancelPossible,
+                                             Converter={StaticResource boolConv}}">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Width="32"
+                                   Height="32"
+                                   Margin="2"
+                                   Source="/Images/Clear.png" />
+                            <TextBlock VerticalAlignment="Center" Text="Cancel" />
+                        </StackPanel>
+                    </Button.Content>
+                </Button>
+            </StackPanel>
+        </GroupBox>
+    </Grid>
+</Window>
